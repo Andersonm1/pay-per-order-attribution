@@ -1,0 +1,29 @@
+services:
+  scylla:
+    image: scylladb/scylla:6.2
+    # Small single-node dev settings, so it runs on a laptop.
+    command: --smp 1 --memory 750M --overprovisioned 1 --developer-mode 1
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'SELECT now() FROM system.local'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  api:
+    build: .
+    environment:
+      SCYLLA_HOSTS: scylla
+      ATTRIBUTION_WINDOW_HOURS: "168"
+    ports:
+      - "8000:8000"
+    depends_on:
+      scylla:
+        condition: service_healthy
+
+volumes:
+  scylla-data:
